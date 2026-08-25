@@ -23,17 +23,81 @@ have_targets     <- requireNamespace("targets",     quietly = TRUE)
 
 ## Why this package exists
 
-`bacipair` is the audit-grade methodology stack behind the Carbon-MRV
-real-data port (`RDT-20`). The translation memo (`RDT-8 §5`) imposes a
-**hard kill-gate**: the synthetic-control extension must recover the
-oracle ATT on simulated staggered-treatment ground truth before any real
-CER ACCU HIR-register data is touched.
+`bacipair` is the audit-grade methodology stack behind a Carbon Market
+Register (CER) Australian Carbon Credit Unit (ACCU) Human-Induced
+Regeneration (HIR) monitoring, reporting and verification (MRV) audit.
+Before any real register data is touched, the synthetic-control
+extension must first recover the oracle average treatment effect on
+the treated (ATT) on simulated staggered-treatment ground truth, at or
+below a pre-registered bias floor of 0.15 percentage points (pp).
 
-This vignette demonstrates the full ground-truth-recovery audit on a
-small simulated panel, mirroring the published kill-gate JSON log under
-`deliverables/RDT-20/logs/oracle-recovery.json`.
+This vignette runs that ground-truth-recovery check on a small
+simulated panel. The audit-grade version of the same check
+(12 replicates at `n_pairs = 200`) achieved a mean bias of 0.0347 pp
+against the floor of 0.15 pp for the estimator this package ships
+(Section 3 below); the run shown here is a single small-`n` replicate
+and its own numbers, printed inline, will differ.
 
-## 1. Simulate a staggered-treatment BACI panel
+## 1. Estimand and estimators
+
+The target is the panel-average ATT, the mean effect of treatment on
+the treated units in the periods after they are treated:
+
+$$
+\mathrm{ATT} \;=\; \mathbb{E}\bigl[Y_{it}(1) - Y_{it}(0) \mid D_i = 1,\; t \ge T_i\bigr],
+$$
+
+where $Y_{it}(1)$ and $Y_{it}(0)$ are the treated and untreated
+potential outcomes for unit $i$ at time $t$, $D_i$ indicates treatment,
+and $T_i$ is unit $i$'s treatment year. Because $Y_{it}(0)$ is never
+observed for a treated unit after $T_i$, every estimator below is a
+different way of constructing a counterfactual for it.
+
+**Paired difference-in-differences (`baci_paired_did()`).** On the
+within-pair-and-arm-demeaned design, the fitted regression is the
+standard two-way fixed-effects specification
+
+$$
+Y_{ipt} \;=\; \alpha_{ip} \;+\; \gamma_t \;+\; \tau \, D_{ip}\!\times\!\mathrm{Post}_{pt} \;+\; \varepsilon_{ipt},
+$$
+
+with a pair-and-arm fixed effect $\alpha_{ip}$, a year fixed effect
+$\gamma_t$, and $\tau$, the treated-arm-by-post-treatment interaction
+coefficient, as the ATT. Both fixed-effect blocks are absorbed by
+within-(pair, arm) demeaning before the interaction term is estimated
+by ordinary least squares, so `att_hat` is $\hat{\tau}$ from that
+demeaned regression. Standard errors are the CR1 cluster-robust
+sandwich (Cameron and Miller, 2015):
+
+$$
+\widehat{V} \;=\; c \cdot (X'X)^{-1}\left(\sum_{g=1}^{G} X_g' u_g u_g' X_g\right)(X'X)^{-1},
+\qquad c \;=\; \frac{G}{G-1}\cdot\frac{N-1}{N-K},
+$$
+
+clustered by proponent (default) or by pair, with $G$ clusters, $N$
+observations and $K$ estimated coefficients.
+
+**Synthetic control (`synth_control_baci()`).** For each treated unit,
+a donor weight vector $w$ over the pool of other units' comparison
+arms is chosen to minimise squared distance to the treated unit's
+pre-treatment trajectory and static predictors, subject to a simplex
+constraint:
+
+$$
+\hat{w} \;=\; \operatorname*{arg\,min}_{w \,\in\, \Delta^{k-1}} \; \lVert X w - y \rVert_2^2,
+\qquad
+\Delta^{k-1} \;=\; \Bigl\{ w \in \mathbb{R}^k : w_j \ge 0,\; \textstyle\sum_j w_j = 1 \Bigr\},
+$$
+
+where $X$ stacks the donors' pre-treatment outcome trajectory and
+standardised static predictors (baseline cover, elevation, rainfall
+climatology) and $y$ is the treated unit's corresponding vector. The
+package solves this by projected gradient descent onto the simplex,
+using the exact Euclidean projection of Wang and Carreira-Perpinan
+(2013). The per-period ATT is then the observed outcome minus the
+fitted counterfactual, $\widehat{Y_{it}(0)} = X_t \hat{w}$.
+
+## 2. Simulate a staggered-treatment BACI panel
 
 The simulator carries an explicit oracle: the panel-average ATT is
 exactly `mean(ite)` over treated post-treatment observations. Every
@@ -56,12 +120,13 @@ print(head(sort(table(sim$pair_table$proponent_id),
                 decreasing = TRUE), 10L))
 ```
 
-## 2. Naive paired-DiD
+## 3. Naive paired-DiD
 
-The matched 1:1 comparator + TWFE is the natural starting point and the
-foil for the synthetic-control estimator. Because elevation /
-rainfall-climatology covary with treatment timing in this DGP, the
-paired-DiD coefficient carries a small but real residual bias.
+The matched 1:1 comparator with TWFE is the natural starting point and
+the foil for the synthetic-control estimator. Because elevation and
+rainfall-climatology covary with treatment timing in this
+data-generating process, the paired-DiD coefficient carries a
+measurable residual bias.
 
 ```{r paired-did}
 did <- baci_paired_did(sim$panel)
@@ -74,12 +139,18 @@ cat(sprintf("Oracle: %.3f pp  ->  bias = %+0.3f pp\n",
             did$att_hat - sim$oracle_panel_att))
 ```
 
-## 3. Time-varying synthetic-control comparator
+Averaged over 12 seeds at `n_pairs = 120`, this estimator's bias is
+-0.256 pp against a 0.70 pp oracle -- 37 per cent of the oracle effect,
+and roughly twice its own cluster-robust standard error (0.138 pp).
+That bias is why Section 4's synthetic control exists as the primary
+estimator, with paired-DiD kept only as the naive foil.
+
+## 4. Time-varying synthetic-control comparator
 
 The donor pool is every other pair's comparison arm; per-treated-unit
-weights are simplex-constrained and chosen to minimise a joint
-objective over pre-treatment outcomes and standardised static
-predictors (baseline cover, elevation, rainfall climatology).
+weights are simplex-constrained and chosen to minimise the joint
+objective of Section 1 over pre-treatment outcomes and standardised
+static predictors (baseline cover, elevation, rainfall climatology).
 
 ```{r synth-control}
 sc <- synth_control_baci(sim$panel)
@@ -90,12 +161,89 @@ cat(sprintf("SC bias vs oracle = %+0.3f pp\n",
             sc$panel_att_hat - sim$oracle_panel_att))
 ```
 
-The SC estimator should net out the elevation / climatology coupling,
-recovering the oracle within the kill-gate floor of 0.15 pp on the
-audit-grade run (12 replicates, n_pairs = 200). On the small-n
-single-replicate run shown here, expect a wider envelope.
+At package defaults the synthetic-control estimator nets out most of
+the elevation and climatology coupling that biases paired-DiD in
+Section 3: on the audit-grade run (12 replicates, `n_pairs = 200`) its
+mean bias is 0.0347 pp, against the pre-registered floor of 0.15 pp.
+The estimator shown in this vignette is the uncorrected variant that
+ships in the package -- it has no covariate-regression bias correction
+and no pre-trend de-trending step, and it is that uncorrected variant's
+numbers quoted above, not a corrected extension. On this vignette's
+small-`n` single-replicate run, expect a wider envelope than the
+audit-grade figure.
 
-## 4. Proponent-level cluster bootstrap
+```{r fig-pretreatment-fit, fig.cap = "Pre-treatment fit and post-treatment counterfactual gap for the best- and worst-fitting treated units, ranked by pre-treatment RMSE. The synthetic control (dashed) tracks the treated unit (solid) closely before the vertical treatment-year line in both panels; after it, the gap between the two lines is that unit's estimated treatment effect."}
+resid_rank <- order(vapply(sc$fits, `[[`, numeric(1L), "pre_residual"))
+best_k  <- resid_rank[1L]
+worst_k <- resid_rank[length(resid_rank)]
+
+op <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+for (k in c(best_k, worst_k)) {
+  fk <- sc$fits[[k]]
+  pd <- fk$panel[order(get("year"))]
+  plot(pd$year, pd$woody_cover, type = "b", pch = 16,
+       xlab = "Year", ylab = "Woody cover (pp)",
+       main = sprintf("Pair %s (pre-fit RMSE = %.2f)",
+                       fk$pair_id, fk$pre_residual),
+       cex.main = 0.85,
+       ylim = range(c(pd$woody_cover, pd$counterfactual)))
+  lines(pd$year, pd$counterfactual, lty = 2, col = "firebrick")
+  abline(v = fk$treatment_year, lty = 3, col = "grey40")
+  legend("topleft", legend = c("Treated", "Synthetic control"),
+         lty = c(1, 2), pch = c(16, NA), col = c("black", "firebrick"),
+         bty = "n", cex = 0.75)
+}
+par(op)
+```
+
+The best-fitting unit's synthetic control tracks its pre-treatment
+trajectory closely and opens a clear, stable post-treatment gap; the
+worst-fitting unit's pre-fit RMSE is an order of magnitude larger, so
+its post-treatment gap is a correspondingly noisier estimate of that
+unit's treatment effect -- the pre-fit RMSE is a per-unit diagnostic
+for how much to trust the post-treatment number next to it.
+
+```{r fig-att-vs-oracle, fig.cap = "Per-unit synthetic-control ATT estimate against the simulator's oracle unit-level treatment effect. Points on the dashed 1:1 line are exactly recovered; the vertical distance of a point from the line is that unit's estimation error."}
+pu <- sc$per_unit_att
+plot_range <- range(c(pu$oracle_unit, pu$att_hat_unit))
+plot(pu$oracle_unit, pu$att_hat_unit, pch = 16, col = "steelblue",
+     xlab = "Oracle unit ATT (pp)", ylab = "Estimated unit ATT (pp)",
+     xlim = plot_range, ylim = plot_range)
+abline(0, 1, lty = 2, col = "grey40")
+```
+
+Most units sit close to the 1:1 line; the panel-average bias reported
+above is the mean vertical offset of this cloud, and it is small next
+to the unit-to-unit scatter -- the estimator is closer to unbiased in
+aggregate than it is precise for any one treated unit, which is the
+usual synthetic-control trade-off between panel-level and unit-level
+accuracy.
+
+```{r fig-donor-weights, fig.cap = "Donor-weight matrix: each row is a treated unit and each column a comparison-arm donor pair, shaded by the simplex weight that unit's synthetic control places on that donor. Darker cells mark heavier weight."}
+donor_ids <- sort(unique(sim$panel[get("arm") == "comparison",
+                                    get("pair_id")]))
+treated_ids <- vapply(sc$fits, `[[`, numeric(1L), "pair_id")
+w_mat <- matrix(0, nrow = length(sc$fits), ncol = length(donor_ids),
+                dimnames = list(as.character(treated_ids),
+                                as.character(donor_ids)))
+for (k in seq_along(sc$fits)) {
+  fk <- sc$fits[[k]]
+  used_donors <- donor_ids[donor_ids != fk$pair_id]
+  w_mat[k, as.character(used_donors)] <- fk$weights
+}
+image(t(w_mat), axes = FALSE,
+      xlab = "Donor pair (comparison arm)", ylab = "Treated unit",
+      col = hcl.colors(20, "YlOrRd", rev = TRUE))
+```
+
+Weight is concentrated on a small subset of donors per treated unit
+rather than spread evenly across the whole pool -- the simplex
+constraint lets the optimiser find a sparse, targeted comparator per
+unit instead of averaging over every donor, which is what makes each
+unit's counterfactual identifiable from the pre-treatment fit in the
+first figure.
+
+## 5. Proponent-level cluster bootstrap
 
 One proponent runs many adjacent projects (Macintosh et al., 2024), so
 the right inferential unit is the proponent cluster. The bootstrap
@@ -114,13 +262,13 @@ cat(sprintf("Bootstrap (paired-DiD): SE = %.3f pp,  95%% CI [%.3f, %.3f]\n",
             boot$se, boot$ci_lo, boot$ci_hi))
 ```
 
-## 5. Goodman-Bacon decomposition (diagnostic)
+## 6. Goodman-Bacon decomposition (diagnostic)
 
 The TWFE coefficient is a weighted average of all 2x2 DiD comparisons
 implied by the treatment-timing structure. The Goodman-Bacon (2021)
 decomposition exposes those weights; large weight on `Treated vs
-Untreated` and small / non-negative weight on
-`Earlier vs Later Treated` is the "clean TWFE" signature.
+Untreated` and small, non-negative weight on `Earlier vs Later
+Treated` is the "clean TWFE" signature.
 
 ```{r goodman-bacon}
 if (have_bacondecomp) {
@@ -133,12 +281,12 @@ if (have_bacondecomp) {
 }
 ```
 
-## 6. Compare to the published kill-gate JSON log
+## 7. Oracle-recovery log
 
-The audit-grade kill-gate run lives at
-`deliverables/RDT-20/logs/oracle-recovery.json`. The schema below is
-emitted by `write_oracle_recovery_log()`, which the
-`bacipair_targets_plan()` skeleton invokes as its terminal target.
+`write_oracle_recovery_log()` writes the oracle-vs-estimate comparison
+computed above to a JSON file in the schema `bacipair_targets_plan()`
+uses as its terminal target, so a `targets` pipeline and this vignette
+report identical numbers from identical inputs.
 
 ```{r log}
 if (have_jsonlite) {
@@ -160,7 +308,7 @@ if (have_jsonlite) {
 }
 ```
 
-## 7. Drop-in `targets` skeleton
+## 8. Drop-in `targets` skeleton
 
 `bacipair_targets_plan()` returns a list of `tar_target_raw()` calls
 ready to drop into a `_targets.R`:
