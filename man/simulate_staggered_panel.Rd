@@ -49,9 +49,13 @@ of staggered treatment years (defaults 2013 / 2022). Must lie inside
 non-zero true additionality (default 0.18).}
 
 \item{additionality_mean_pp, additionality_sd_pp}{Numeric. Mean / SD of
-the truncated-normal asymptotic-additionality distribution among
+the (untruncated) Normal asymptotic-additionality distribution among
 pairs with \code{has_real_additionality == TRUE}, in percentage points of
-woody cover (defaults 4.5 / 1.5).}
+woody cover (defaults 4.5 / 1.5). The draw is signed, not
+non-negative: a pair flagged as genuinely additional can realise a
+negative \code{true_additionality_max} when \code{additionality_mean_pp} is
+small relative to \code{additionality_sd_pp}, and that signed value flows
+unaltered into \code{oracle_panel_att}.}
 
 \item{additionality_dynamics}{Numeric vector of non-negative weights
 indexed by years-since-treatment (1, 2, ...). The realised
