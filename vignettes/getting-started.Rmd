@@ -1,0 +1,184 @@
+---
+title: "Getting started with bacipair"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with bacipair}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4,
+  dpi = 96
+)
+set.seed(20260520L)
+have_bacondecomp <- requireNamespace("bacondecomp", quietly = TRUE)
+have_jsonlite    <- requireNamespace("jsonlite",    quietly = TRUE)
+have_targets     <- requireNamespace("targets",     quietly = TRUE)
+```
+
+## Why this package exists
+
+`bacipair` is the audit-grade methodology stack behind the Carbon-MRV
+real-data port (`RDT-20`). The translation memo (`RDT-8 §5`) imposes a
+**hard kill-gate**: the synthetic-control extension must recover the
+oracle ATT on simulated staggered-treatment ground truth before any real
+CER ACCU HIR-register data is touched.
+
+This vignette demonstrates the full ground-truth-recovery audit on a
+small simulated panel, mirroring the published kill-gate JSON log under
+`deliverables/RDT-20/logs/oracle-recovery.json`.
+
+## 1. Simulate a staggered-treatment BACI panel
+
+The simulator carries an explicit oracle: the panel-average ATT is
+exactly `mean(ite)` over treated post-treatment observations. Every
+distribution and seed is recorded.
+
+```{r simulate}
+library(bacipair)
+
+sim <- simulate_staggered_panel(
+  seed    = 20260520L,
+  n_pairs = 80L
+)
+
+cat("Oracle panel-average ATT:",
+    round(sim$oracle_panel_att, 3), "pp\n")
+cat("Treatment-year distribution:\n")
+print(table(sim$pair_table$treatment_year))
+cat("Proponent cluster sizes (top 10):\n")
+print(head(sort(table(sim$pair_table$proponent_id),
+                decreasing = TRUE), 10L))
+```
+
+## 2. Naive paired-DiD
+
+The matched 1:1 comparator + TWFE is the natural starting point and the
+foil for the synthetic-control estimator. Because elevation /
+rainfall-climatology covary with treatment timing in this DGP, the
+paired-DiD coefficient carries a small but real residual bias.
+
+```{r paired-did}
+did <- baci_paired_did(sim$panel)
+
+cat(sprintf("Paired-DiD ATT_hat = %.3f pp  (cluster-robust SE = %.3f)\n",
+            did$att_hat, did$se_cluster))
+cat(sprintf("95%% CI: [%.3f, %.3f]\n", did$ci_lo, did$ci_hi))
+cat(sprintf("Oracle: %.3f pp  ->  bias = %+0.3f pp\n",
+            sim$oracle_panel_att,
+            did$att_hat - sim$oracle_panel_att))
+```
+
+## 3. Time-varying synthetic-control comparator
+
+The donor pool is every other pair's comparison arm; per-treated-unit
+weights are simplex-constrained and chosen to minimise a joint
+objective over pre-treatment outcomes and standardised static
+predictors (baseline cover, elevation, rainfall climatology).
+
+```{r synth-control}
+sc <- synth_control_baci(sim$panel)
+
+cat(sprintf("SC panel ATT_hat = %.3f pp\n", sc$panel_att_hat))
+cat(sprintf("SC pre-fit RMSE  = %.3f pp\n", sc$pre_fit_rmse))
+cat(sprintf("SC bias vs oracle = %+0.3f pp\n",
+            sc$panel_att_hat - sim$oracle_panel_att))
+```
+
+The SC estimator should net out the elevation / climatology coupling,
+recovering the oracle within the kill-gate floor of 0.15 pp on the
+audit-grade run (12 replicates, n_pairs = 200). On the small-n
+single-replicate run shown here, expect a wider envelope.
+
+## 4. Proponent-level cluster bootstrap
+
+One proponent runs many adjacent projects (Macintosh et al., 2024), so
+the right inferential unit is the proponent cluster. The bootstrap
+resamples whole proponents with replacement and refits the chosen
+estimator.
+
+```{r bootstrap}
+boot <- proponent_cluster_bootstrap(
+  sim$panel,
+  estimator = "paired_did",
+  n_boot    = 60L,
+  seed      = 20260521L
+)
+
+cat(sprintf("Bootstrap (paired-DiD): SE = %.3f pp,  95%% CI [%.3f, %.3f]\n",
+            boot$se, boot$ci_lo, boot$ci_hi))
+```
+
+## 5. Goodman-Bacon decomposition (diagnostic)
+
+The TWFE coefficient is a weighted average of all 2x2 DiD comparisons
+implied by the treatment-timing structure. The Goodman-Bacon (2021)
+decomposition exposes those weights; large weight on `Treated vs
+Untreated` and small / non-negative weight on
+`Earlier vs Later Treated` is the "clean TWFE" signature.
+
+```{r goodman-bacon}
+if (have_bacondecomp) {
+  gb <- goodman_bacon_decomp(sim$panel)
+  print(gb$weight_summary)
+  cat(sprintf("Implied TWFE estimate from 2x2 weights: %.3f pp\n",
+              gb$twfe_estimate))
+} else {
+  message("bacondecomp not installed - skipping decomposition.")
+}
+```
+
+## 6. Compare to the published kill-gate JSON log
+
+The audit-grade kill-gate run lives at
+`deliverables/RDT-20/logs/oracle-recovery.json`. The schema below is
+emitted by `write_oracle_recovery_log()`, which the
+`bacipair_targets_plan()` skeleton invokes as its terminal target.
+
+```{r log}
+if (have_jsonlite) {
+  log_path <- file.path(tempdir(), "oracle-recovery-vignette.json")
+  write_oracle_recovery_log(
+    panel             = sim,
+    synth_control_fit = sc,
+    paired_did_fit    = did,
+    cluster_boot      = boot,
+    path              = log_path
+  )
+
+  log <- jsonlite::fromJSON(log_path)
+  str(log[c("oracle_panel_att", "sc_panel_att_hat", "sc_minus_oracle",
+            "did_att_hat", "did_minus_oracle",
+            "bootstrap_se", "bootstrap_ci_lo", "bootstrap_ci_hi")])
+} else {
+  message("jsonlite not installed - skipping log demonstration.")
+}
+```
+
+## 7. Drop-in `targets` skeleton
+
+`bacipair_targets_plan()` returns a list of `tar_target_raw()` calls
+ready to drop into a `_targets.R`:
+
+```{r targets-plan}
+if (have_targets) {
+  plan <- bacipair_targets_plan(
+    simulate_args = list(seed = 20260520L, n_pairs = 80L),
+    boot_args     = list(n_boot = 60L, seed = 20260521L)
+  )
+  print(names(plan))
+} else {
+  message("targets not installed - skipping plan demonstration.")
+}
+```
+
+## Reproducibility
+
+```{r session-info}
+sessionInfo()
+```

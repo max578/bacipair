@@ -1,0 +1,53 @@
+bibentry(
+  bibtype = "Manual",
+  title   = "bacipair: BACI / paired-DiD / synthetic-control estimators for carbon-MRV audits",
+  author  = c(person(given = "Max",
+                     family = "Moldovan",
+                     comment = c(ORCID = "0000-0001-9680-8474"))),
+  year    = "2026",
+  note    = sprintf("R package version %s", meta$Version),
+  url     = "https://github.com/maxmoldovan/bacipair",
+  textVersion = paste0(
+    "Moldovan, M. (2026). ",
+    "bacipair: BACI / paired-DiD / synthetic-control estimators for carbon-MRV audits. ",
+    "R package version ", meta$Version,
+    ". <https://github.com/maxmoldovan/bacipair>."
+  )
+)
+
+bibentry(
+  bibtype = "Article",
+  title   = paste(
+    "Australian human-induced native forest regeneration carbon offset",
+    "projects have limited impact on changes in woody vegetation cover",
+    "and carbon removals"
+  ),
+  author  = c(
+    person(given = "A.", family = "Macintosh"),
+    person(given = "D.", family = "Butler"),
+    person(given = "P.", family = "Larraondo"),
+    person(given = "M. C.", family = "Evans"),
+    person(given = "D.", family = "Ansell"),
+    person(given = "M.", family = "Waschka"),
+    person(given = "R.", family = "Fensham"),
+    person(given = "D.", family = "Eldridge"),
+    person(given = "D.", family = "Lindenmayer"),
+    person(given = "P.", family = "Gibbons"),
+    person(given = "P.", family = "Summerfield")
+  ),
+  journal = "Communications Earth & Environment",
+  volume  = "5",
+  pages   = "149",
+  year    = "2024",
+  doi     = "10.1038/s43247-024-01313-x",
+  textVersion = paste(
+    "Macintosh, A., Butler, D., Larraondo, P., Evans, M. C., Ansell, D.,",
+    "Waschka, M., Fensham, R., Eldridge, D., Lindenmayer, D.,",
+    "Gibbons, P., & Summerfield, P. (2024).",
+    "Australian human-induced native forest regeneration carbon offset",
+    "projects have limited impact on changes in woody vegetation cover",
+    "and carbon removals.",
+    "Communications Earth & Environment, 5, Article 149.",
+    "<https://doi.org/10.1038/s43247-024-01313-x>."
+  )
+)

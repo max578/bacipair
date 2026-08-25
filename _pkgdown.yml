@@ -1,0 +1,34 @@
+url: https://maxmoldovan.github.io/bacipair/
+
+template:
+  bootstrap: 5
+  theme: arrow-light
+  bslib:
+    primary: "#1f5582"
+    border-radius: 0.4rem
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+  - title: "Simulator"
+    desc: "Synthetic staggered-treatment BACI panel with known oracle ATT."
+    contents:
+      - simulate_staggered_panel
+  - title: "Estimators"
+    desc: "Paired-DiD and synthetic-control point estimators."
+    contents:
+      - baci_paired_did
+      - synth_control_baci
+  - title: "Inference"
+    desc: "Cluster bootstrap and Goodman-Bacon decomposition."
+    contents:
+      - proponent_cluster_bootstrap
+      - goodman_bacon_decomp
+  - title: "Pipeline helpers"
+    desc: "targets-skeleton and oracle-recovery JSON log."
+    contents:
+      - bacipair_targets_plan
+      - write_oracle_recovery_log

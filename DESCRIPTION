@@ -1,0 +1,45 @@
+Package: bacipair
+Type: Package
+Title: BACI / Paired-DiD / Synthetic-Control Estimators for
+    Carbon-MRV Audits
+Version: 0.1.0
+Authors@R: c(
+    person(given = "Max",
+           family = "Moldovan",
+           role = c("aut", "cre"),
+           email = "max.moldovan@adelaide.edu.au",
+           comment = c(ORCID = "0000-0001-9680-8474")))
+Description: A reproducibility-by-construction toolkit for
+    Before-After-Control-Impact (BACI) audits of carbon-MRV
+    registers. Provides a staggered-treatment simulator with a known
+    oracle ATT, a paired difference-in-differences estimator with
+    proponent-cluster-robust standard errors, a time-varying
+    synthetic-control comparator with simplex-constrained donor
+    weights (Wang and Carreira-Perpinan, 2013), a proponent-level
+    cluster bootstrap, a Goodman-Bacon (2021) staggered-DiD
+    decomposition wrapper, and 'targets'-skeleton helpers for
+    end-to-end pipeline reproducibility. Designed against the
+    Macintosh et al. (2024) Australian Human-Induced Regeneration
+    setting but applicable to any paired BACI register.
+License: MIT + file LICENSE
+URL: https://github.com/maxmoldovan/bacipair
+BugReports: https://github.com/maxmoldovan/bacipair/issues
+Encoding: UTF-8
+Language: en-AU
+LazyData: false
+Depends: R (>= 4.1)
+Imports:
+    data.table (>= 1.15.0),
+    stats,
+    utils
+Suggests:
+    bacondecomp,
+    jsonlite,
+    knitr,
+    rmarkdown,
+    targets,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.3
+Roxygen: list(markdown = TRUE)
