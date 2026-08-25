@@ -33,9 +33,13 @@
 #'     \item{`ci_lo`,`ci_hi`}{Numeric. 95% normal-approximation CI.}
 #'     \item{`n_obs`,`n_clusters`,`n_pairs`,`n_years`}{Integers. Sample
 #'       counts.}
-#'     \item{`coefficients`}{Numeric named vector of all estimated
-#'       coefficients (intercept, treated-arm dummy, post-treatment
-#'       dummy, ATT interaction, year FE).}
+#'     \item{`coefficients`}{Numeric named vector of the estimated
+#'       coefficients on the *demeaned* design: the ATT interaction
+#'       (`did_i_dm`) plus one coefficient per non-base year dummy
+#'       (`yr_<year>_dm`). The pair-and-arm intercept and the
+#'       treated-arm and post-treatment main effects are absorbed by the
+#'       within-pair-and-arm demeaning at fit time and are not part of
+#'       the returned vector.}
 #'     \item{`call`}{Captured `match.call()`.}
 #'   }
 #' @examples

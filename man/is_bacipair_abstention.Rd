@@ -19,3 +19,12 @@ producer-agnostic \code{is_orchestra_decline()} in
 class (and every other member's) by the \verb{_refusal}/\verb{_abstention} naming
 convention without depending on \code{bacipair}'s namespace.
 }
+\examples{
+sim <- simulate_staggered_panel(seed = 20260520L, n_pairs = 4L,
+                                 n_proponents = 2L)
+cond <- tryCatch(
+  synth_control_baci(sim$panel),
+  bacipair_abstention = function(e) e
+)
+is_bacipair_abstention(cond)
+}

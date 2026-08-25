@@ -37,3 +37,14 @@ used by \code{deliverables/RDT-20/logs/oracle-recovery.json}.
 \details{
 Requires \code{jsonlite}; declared in \code{Suggests}.
 }
+\examples{
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+  sim <- simulate_staggered_panel(seed = 20260520L, n_pairs = 30L,
+                                   n_proponents = 8L)
+  sc  <- synth_control_baci(sim$panel)
+  did <- baci_paired_did(sim$panel)
+  log_path <- tempfile(fileext = ".json")
+  write_oracle_recovery_log(sim, sc, did, path = log_path)
+  jsonlite::fromJSON(log_path)$sc_minus_oracle
+}
+}

@@ -118,6 +118,16 @@ bacipair_targets_plan <- function(simulate_args = list(seed = 20260520L,
 #'   [proponent_cluster_bootstrap()] (or `NULL`).
 #' @param path Character. Output JSON path.
 #' @return Invisibly returns `path`. Side effect: writes the log.
+#' @examples
+#' if (requireNamespace("jsonlite", quietly = TRUE)) {
+#'   sim <- simulate_staggered_panel(seed = 20260520L, n_pairs = 30L,
+#'                                    n_proponents = 8L)
+#'   sc  <- synth_control_baci(sim$panel)
+#'   did <- baci_paired_did(sim$panel)
+#'   log_path <- tempfile(fileext = ".json")
+#'   write_oracle_recovery_log(sim, sc, did, path = log_path)
+#'   jsonlite::fromJSON(log_path)$sc_minus_oracle
+#' }
 #' @export
 write_oracle_recovery_log <- function(panel,
                                       synth_control_fit,

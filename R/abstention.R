@@ -60,6 +60,14 @@ abstain <- function(message, reason, data = list()) {
 #'
 #' @param x Any object, typically a caught condition.
 #' @return A length-1 logical.
+#' @examples
+#' sim <- simulate_staggered_panel(seed = 20260520L, n_pairs = 4L,
+#'                                  n_proponents = 2L)
+#' cond <- tryCatch(
+#'   synth_control_baci(sim$panel),
+#'   bacipair_abstention = function(e) e
+#' )
+#' is_bacipair_abstention(cond)
 #' @export
 is_bacipair_abstention <- function(x) {
   inherits(x, "bacipair_abstention")

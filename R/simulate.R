@@ -27,9 +27,13 @@
 #' @param additionality_share Numeric in `[0, 1]`. Fraction of pairs with
 #'   non-zero true additionality (default 0.18).
 #' @param additionality_mean_pp,additionality_sd_pp Numeric. Mean / SD of
-#'   the truncated-normal asymptotic-additionality distribution among
+#'   the (untruncated) Normal asymptotic-additionality distribution among
 #'   pairs with `has_real_additionality == TRUE`, in percentage points of
-#'   woody cover (defaults 4.5 / 1.5).
+#'   woody cover (defaults 4.5 / 1.5). The draw is signed, not
+#'   non-negative: a pair flagged as genuinely additional can realise a
+#'   negative `true_additionality_max` when `additionality_mean_pp` is
+#'   small relative to `additionality_sd_pp`, and that signed value flows
+#'   unaltered into `oracle_panel_att`.
 #' @param additionality_dynamics Numeric vector of non-negative weights
 #'   indexed by years-since-treatment (1, 2, ...). The realised
 #'   individual treatment effect in year `y` is
