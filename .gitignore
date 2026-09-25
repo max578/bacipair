@@ -6,3 +6,6 @@
 *.tar.gz
 .DS_Store
 docs/
+.claude/
+.positai/
+.cursor/

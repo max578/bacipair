@@ -30,6 +30,11 @@ See `vignette("getting-started", package = "bacipair")` for the estimand and
 estimator mathematics, the paired-DiD comparator, the cluster bootstrap, and
 the Goodman-Bacon staggered-DiD diagnostic.
 
+## Contributing
+
+Bug reports and suggestions are welcome through the
+[issue tracker](https://github.com/maxmoldovan/bacipair/issues).
+
 ## Citation
 
 If you use this package, please cite both the package and the source
