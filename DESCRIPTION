@@ -22,8 +22,8 @@ Description: A reproducibility-by-construction toolkit for
     Macintosh et al. (2024) Australian Human-Induced Regeneration
     setting but applicable to any paired BACI register.
 License: MIT + file LICENSE
-URL: https://github.com/maxmoldovan/bacipair
-BugReports: https://github.com/maxmoldovan/bacipair/issues
+URL: https://github.com/max578/bacipair
+BugReports: https://github.com/max578/bacipair/issues
 Encoding: UTF-8
 Language: en-AU
 LazyData: false

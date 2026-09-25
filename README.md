@@ -33,7 +33,7 @@ the Goodman-Bacon staggered-DiD diagnostic.
 ## Contributing
 
 Bug reports and suggestions are welcome through the
-[issue tracker](https://github.com/maxmoldovan/bacipair/issues).
+[issue tracker](https://github.com/max578/bacipair/issues).
 
 ## Citation
 

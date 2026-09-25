@@ -64,8 +64,8 @@ application. \emph{arXiv preprint}. \doi{10.48550/arXiv.1309.1541}.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/maxmoldovan/bacipair}
-  \item Report bugs at \url{https://github.com/maxmoldovan/bacipair/issues}
+  \item \url{https://github.com/max578/bacipair}
+  \item Report bugs at \url{https://github.com/max578/bacipair/issues}
 }
 
 }

@@ -6,12 +6,12 @@ bibentry(
                      comment = c(ORCID = "0000-0001-9680-8474"))),
   year    = "2026",
   note    = sprintf("R package version %s", meta$Version),
-  url     = "https://github.com/maxmoldovan/bacipair",
+  url     = "https://github.com/max578/bacipair",
   textVersion = paste0(
     "Moldovan, M. (2026). ",
     "bacipair: BACI / paired-DiD / synthetic-control estimators for carbon-MRV audits. ",
     "R package version ", meta$Version,
-    ". <https://github.com/maxmoldovan/bacipair>."
+    ". <https://github.com/max578/bacipair>."
   )
 )
 
