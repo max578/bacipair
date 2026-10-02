@@ -11,7 +11,7 @@ before it is trusted on a real register.
 
 ```r
 # install.packages("remotes")
-remotes::install_local("path/to/bacipair")
+remotes::install_github("max578/bacipair")
 ```
 
 ## Example

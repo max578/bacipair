@@ -12,3 +12,4 @@
 ^\.claude$
 ^\.positai$
 ^\.cursor$
+^LICENSE\.md$

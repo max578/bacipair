@@ -16,8 +16,7 @@
 
 ## Infrastructure
 
-* Package is now under git version control (`max578/bacipair`, private)
-  and carries a standard `R-CMD-check` GitHub Actions workflow (F10).
+* Package is now under git version control and carries a standard `R-CMD-check` GitHub Actions workflow (F10).
 
 ## Documentation
 
