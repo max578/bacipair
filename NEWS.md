@@ -1,5 +1,11 @@
 # bacipair (development version)
 
+## Documentation and CI
+
+* The package has a logo.
+* README carries status badges and lists related packages.
+* CI runs lintr (report-only) and test coverage.
+
 ## Bug fixes
 
 * `synth_control_baci()` no longer requires the simulator-only oracle
